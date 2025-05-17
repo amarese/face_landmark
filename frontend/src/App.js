@@ -1,77 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Container, 
+  Grid, 
+  Card, 
+  CardMedia, 
+  CardContent, 
+  Typography,
+  Box,
+  CircularProgress
+} from '@mui/material';
 import axios from 'axios';
-import './App.css';
 
 function App() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [landmarks, setLandmarks] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    setSelectedFile(file);
-    setPreview(URL.createObjectURL(file));
-    setError(null);
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!selectedFile) return;
-
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
-    try {
-      const response = await axios.post('http://localhost:3001/predict', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+  useEffect(() => {
+    // Fetch images from the backend using POST
+    axios.post('http://localhost:3000/list_images')
+      .then(response => {
+        setImages(response.data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError('Failed to load images');
+        setLoading(false);
       });
-      setLandmarks(response.data.landmarks);
-      setError(null);
+  }, []);
+
+  const detectFaces = async (imageUrl) => {
+    try {
+      const response = await axios.post('http://localhost:3000/detect_landmarks', {
+        image: imageUrl
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error:', error);
-      setError('Failed to detect landmarks. Please try again.');
+      console.error('Error detecting faces:', error);
+      return null;
     }
   };
 
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Face Landmark Detection</h1>
-        <form onSubmit={handleSubmit}>
-          <input type="file" onChange={handleFileSelect} accept="image/*" />
-          <button type="submit">Detect Landmarks</button>
-        </form>
-        
-        {error && <div className="error-message">{error}</div>}
-        
-        {preview && (
-          <div className="preview-container">
-            <img src={preview} alt="Preview" style={{ maxWidth: '500px' }} />
-            {landmarks && (
-              <div className="landmarks">
-                {landmarks.map((landmark, index) => (
-                  <div
-                    key={index}
-                    className="landmark-box"
-                    style={{
-                      position: 'absolute',
-                      left: landmark.x,
-                      top: landmark.y,
-                      width: landmark.width,
-                      height: landmark.height,
-                      border: '2px solid red',
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </header>
-    </div>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Face Landmark Detection
+      </Typography>
+      <Grid container spacing={4}>
+        {images.map((image, index) => (
+          <Grid item xs={12} sm={6} md={4} key={index}>
+            <Card>
+              <CardMedia
+                component="img"
+                height="300"
+                image={`http://localhost:3000${image.url}`}
+                alt={image.name}
+              />
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  {image.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {image.faces ? `${image.faces.length} faces detected` : 'No faces detected'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Container>
   );
 }
 

@@ -1,42 +1,40 @@
-import bentoml
-import numpy as np
 import cv2
+import numpy as np
+import bentoml
 from bentoml.io import JSON, Image
+from bentoml.adapters import FileInput
+from bentoml.frameworks.cv2 import OpenCvImage
 
-# Face landmark detection service
-svc = bentoml.Service("face_landmark_service")
-
-@svc.api(
-    input=Image(),
-    output=JSON(),
-    route="/predict",
-    cors=True,
-    cors_origins=["http://localhost:3002"],
-    cors_methods=["GET", "POST", "OPTIONS"],
-    cors_headers=["Content-Type"],
-    cors_max_age=3600
+@bentoml.service(
+    resources={"cpu": "1"},
+    traffic={"timeout": 300},
+    name="face_landmark_service",
+    version="1.0.0",
 )
-def detect_landmarks(img):
-    # Convert image to numpy array
-    img_array = np.array(img)
-    
-    # Convert to grayscale for face detection
-    gray = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
-    
-    # Load face detector
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    
-    # Detect faces
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-    
-    # For now, return dummy landmarks
-    landmarks = []
-    for (x, y, w, h) in faces:
-        landmarks.append({
-            "x": int(x),
-            "y": int(y),
-            "width": int(w),
-            "height": int(h)
-        })
-    
-    return {"landmarks": landmarks} 
+class FaceLandmarkService(bentoml.Service):
+    def __init__(self):
+        # Load the Haar Cascade classifier
+        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+    @bentoml.api(input=Image(), output=JSON())
+    def detect_landmarks(self, image: OpenCvImage) -> dict:
+        # Convert image to grayscale
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Detect faces
+        faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
+        
+        results = []
+        for (x, y, w, h) in faces:
+            face_landmarks = {
+                "type": "haar_cascade",
+                "bbox": {
+                    "x": int(x),
+                    "y": int(y),
+                    "width": int(w),
+                    "height": int(h)
+                }
+            }
+            results.append(face_landmarks)
+            
+        return {"faces": results} 

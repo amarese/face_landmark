@@ -1,98 +1,60 @@
-# Face Landmark Detection Web Application
+# Face Landmark Detection Application
 
-얼굴 이미지에서 랜드마크를 검출하고 웹 인터페이스를 통해 시각화하는 애플리케이션입니다.
+This application provides a web interface for detecting face landmarks in images using OpenCV's Haar Cascade classifier.
 
-## 기술 스택
-
-- Backend: Python, BentoML, OpenCV
-- Frontend: React
-- Development: Tilt, Docker, Docker Compose
-
-## 프로젝트 구조
-
-```
-.
-├── service.py              # BentoML 서비스 정의
-├── requirements.txt        # Python 의존성
-├── Dockerfile.python      # Python 서비스 Dockerfile
-├── frontend/              # React 프론트엔드
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── Dockerfile
-└── docker-compose.yml     # Docker Compose 설정
-```
-
-## 기능
-
-- 이미지 업로드 및 미리보기
-- 얼굴 검출 및 랜드마크 표시
-- 실시간 개발 환경 (Hot Reloading)
-
-## 시작하기
-
-### 필수 요구사항
+## Prerequisites
 
 - Docker
 - Docker Compose
 - Tilt
 
-### 설치 및 실행
+## Project Structure
 
-1. Tilt 설치 (macOS):
-```bash
-brew install tilt-dev/tap/tilt
+```
+.
+├── backend/           # Backend service
+│   ├── service.py    # BentoML service for face detection
+│   ├── requirements.txt   # Python dependencies
+│   └── Dockerfile.backend # Backend Docker configuration
+├── frontend/         # React frontend application
+├── res/             # Directory containing test images
+├── docker-compose.yml # Docker Compose configuration
+└── Tiltfile         # Tilt configuration
 ```
 
-2. 프로젝트 실행:
-```bash
-tilt up
-```
+## Setup and Running
 
-### 접근 방법
+1. Install Tilt:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+   ```
 
-- React 프론트엔드: http://localhost:3002
-- Python API 서버: http://localhost:3001
+2. Start the application:
+   ```bash
+   tilt up
+   ```
 
-## 개발 환경
+This will start both the frontend and backend services:
+- Frontend: http://localhost:3001
+- Backend: http://localhost:3000
 
-### Hot Reloading
+## Features
 
-- Python 서비스: service.py 또는 requirements.txt 변경 시 자동 재시작
-- React 프론트엔드: 소스 코드 변경 시 자동 재시작
+- Display images from the res directory
+- Face detection using OpenCV's Haar Cascade classifier
+- Real-time face landmark detection
+- CORS-enabled API endpoints
+- Modern Material-UI based interface
 
-### 볼륨 마운트
+## Development
 
-- Python 서비스:
-  - service.py
-  - requirements.txt
+The application uses Tilt for development workflow, which provides:
+- Hot reloading for both frontend and backend
+- Automatic rebuilds on file changes
+- Easy service orchestration
 
-- React 프론트엔드:
-  - src/
-  - public/
-  - package.json
-  - package-lock.json
+## API Endpoints
 
-## API 엔드포인트
-
-### 얼굴 랜드마크 검출
-
-- URL: `/predict`
-- Method: POST
-- Content-Type: multipart/form-data
-- Request Body: 이미지 파일
-- Response: 검출된 얼굴 랜드마크 좌표
-
-## 문제 해결
-
-### CORS 이슈
-
-현재 BentoML의 CORS 설정이 불안정할 수 있습니다. 다음과 같은 대안을 고려할 수 있습니다:
-
-1. Nginx를 리버스 프록시로 사용
-2. BentoML의 CORS 설정을 환경 변수로 구성
-3. 프론트엔드에서 프록시 설정
-
-## 라이선스
-
-MIT License 
+- `POST /detect_landmarks`: Accepts an image and returns face detection results
+  - Input: Image file
+  - Output: JSON containing face detection results 
