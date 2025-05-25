@@ -1,27 +1,47 @@
-version: '3.8'
-
+version: '3'
 services:
-  backend:
-    image: face-landmark-backend
+  face_landmark_model:
+    image: face-landmark-model:latest
+    build:
+      context: ./face_landmark_model
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    command: bentoml serve service:FaceLandmarkService --development
     volumes:
-      - ./backend:/app
-      - ./res:/app/res
+      - ./face_landmark_model:/app
     environment:
-      - PYTHONUNBUFFERED=1
-    command: bentoml serve service.py:FaceLandmarkService --port 3000 --reload
+      - BENTOML_CONFIG_OPTIONS=api_server.http.port=3000
 
-  frontend:
-    image: face-landmark-frontend
+  face_landmark_backend:
+    image: face-landmark-backend:latest
+    build:
+      context: ./face_landmark_backend
+      dockerfile: Dockerfile
     ports:
-      - "3001:3000"
+      - "4000:4000"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./res:/res
     environment:
-      - REACT_APP_API_URL=http://localhost:3000
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
+      - MODEL_SERVER_URL=http://face_landmark_model:3000
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
-      - backend 
+      - face_landmark_model
+
+  face_landmark_frontend:
+    image: face-landmark-frontend:latest
+    build:
+      context: ./face_landmark_frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./res:/app/public/res
+    environment:
+      - REACT_APP_API_URL=http://localhost:4000
+    depends_on:
+      - face_landmark_backend 
